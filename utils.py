@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from tree import Tree
+import numpy as np
 
 ''' change json_dict to tree structure.'''
 def json2tree(json_dict):
@@ -36,3 +37,13 @@ def _json2tree_rec(json_dict, tree):
             tree.add_child(Tree(' '.join(json_dict)))
         else:
             tree.add_child(Tree(str(json_dict)))
+            
+def vec2word(tree, word_dict):
+    
+    for key in word_dict.keys():
+        if np.array_equal(tree.value, word_dict[key]):
+            tree.value = key
+
+    for child in tree.children:
+        vec2word(child, word_dict)
+    return tree   

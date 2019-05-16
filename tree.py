@@ -34,7 +34,19 @@ class Tree(object):
         self._depth = count
         return self._depth
     
+    def height(self):
+        if hasattr(self, '_height'):
+            return self._height
+        if self.parent == None:
+            self._height = 0
+        else:
+            self._height = self.parent.height() + 1
+        
+        return self._height
+        
     def __str__(self):
-        out_str = '  '*self.depth() + self.value
+        out_str = '  '*self.height() + self.value.__str__()
         for child in self.children:
             out_str += '\n' + child.__str__()
+        return out_str
+    
