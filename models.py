@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import torch
 import torch.nn as nn 
+import torchvision.models as models
 
-# module for childsumtreelstm
 class ChildSumTreeLSTM(nn.Module):
+    '''
+    input: Tree(in_dim)
+    output: state(mem_dim)
+    '''
     def __init__(self, in_dim, mem_dim):
         super(ChildSumTreeLSTM, self).__init__()
         self.in_dim = in_dim
@@ -44,3 +48,42 @@ class ChildSumTreeLSTM(nn.Module):
 
         tree.state = self.node_forward(inputs, child_c, child_h)
         return tree.state
+    
+class ImageCaptionTree(nn.Module):
+    '''
+    input: img(224, 224, 3), Tree(word_dim)
+    output: next_word(word_dim)
+    '''
+    def __init__(self, word_dim):
+        super(ImageCaptionSimple, self).__init__()
+        self.word_dim = word_dim
+        
+        self.tree_lstm = ChildSumTreeLSTM(word_dim, 1024)
+        self.cnn = models.vgg16(pretrained=True) # 1000
+        self.fc = nn.Sequential(
+            nn.Linear(2024, 2024),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(2024, 1024),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1024, word_dim),
+            nn.Softmax()
+        )
+        
+    def forward(self, img, tree):
+        img_features = self.cnn(img)
+        tree_features = self.tree_lstm(tree)
+        return self.fc(self.cat((img_features, tree_features)))
+ 
+class ImageCaptionSequence(nn.Module):
+    '''
+    Input: img(batch_size, 224, 224, 3)
+    Output: seq(batch_size, time_step, word_dim)
+    '''
+
+class ImageCaptionSequenceWithAttention(nn.Module):
+    pass
+
+class ImageCaptionTreeWithAttention(nn.Module):
+    pass

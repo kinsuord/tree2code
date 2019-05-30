@@ -5,17 +5,25 @@ import numpy as np
 from torch.utils.data.dataset import Dataset
 from PIL import Image
 
-from utils import json2tree, vec2word
+from utils import json2tree, vec2word, dsl2tree
 
-class TreeLoader(Dataset):
-    def __init__(self, json_dir='dataset/pix2code/xml_hast', embedding=True):
-        files = [f for f in os.listdir(json_dir) if os.path.isfile(os.path.join(json_dir, f))]
-        json_data = []
-        for file in files:    
-            with open(os.path.join(json_dir, file)) as json_file: 
-                json_data.append(json.load(json_file))
-                
-        self.trees = [json2tree(t) for t in json_data]
+class TreeDataset(Dataset):
+    def __init__(self, tree_dir='dataset/pix2code/dsl', embedding=True, dsl=True):
+        files = [f for f in os.listdir(tree_dir) if os.path.isfile(os.path.join(tree_dir, f))]
+        if dsl:
+            dsl_data = []
+            for file in files:    
+                with open(os.path.join(tree_dir, file)) as dsl_file: 
+                    dsl_data.append(dsl_file.read())
+                    
+            self.trees = [dsl2tree(t) for t in dsl_data]
+        else:
+            json_data = []
+            for file in files:    
+                with open(os.path.join(tree_dir, file)) as json_file: 
+                    json_data.append(json.load(json_file))
+                    
+            self.trees = [json2tree(t) for t in json_data]
         
         word_count = {}
         def count_tree(tree, word_count):
@@ -58,7 +66,7 @@ class TreeLoader(Dataset):
             self._word_embedding(child)
         return tree
     
-class ImgLoader(Dataset):
+class ImgDataset(Dataset):
     def __init__(self, img_dir='dataset/pix2code/png', transform=transforms.Compose([transforms.Resize((224, 224))])):
         self.transform = transform
         self.img_path = [os.path.join(img_dir, f) for f in os.listdir(img_dir) 
@@ -76,4 +84,4 @@ class ImgLoader(Dataset):
 class TextLoader(Dataset):
     def __init__(self, dsl_dir='dataset/pix2code/dsl'):
         pass
-treeloader = TreeLoader()
+    

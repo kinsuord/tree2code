@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from tree import Tree
 import numpy as np
+import os
 
 ''' change json_dict to tree structure.'''
 def json2tree(json_dict):
@@ -37,7 +38,7 @@ def _json2tree_rec(json_dict, tree):
             tree.add_child(Tree(' '.join(json_dict)))
         else:
             tree.add_child(Tree(str(json_dict)))
-            
+
 def vec2word(tree, word_dict):
     
     for key in word_dict.keys():
@@ -47,3 +48,32 @@ def vec2word(tree, word_dict):
     for child in tree.children:
         vec2word(child, word_dict)
     return tree   
+
+def dsl2tree(dsl):
+    root = Tree('root')
+    words = dsl.split()
+    stack = [root]
+    last_child = None
+    for word in words:
+        if word == '{':
+            stack.append(last_child)
+        elif word == '}':
+            child = Tree('None')
+            stack[-1].add_child(child)
+            stack.pop()
+        else:
+            child = Tree(word.replace(',', ''))
+            stack[-1].add_child(child)
+            last_child = child
+    stack[-1].add_child(Tree('None'))
+    return root
+       
+def createFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print ('Error: Creating directory. ' + directory)
+#with open('dataset/pix2code/dsl/10.gui') as f:
+#    dsl_code = f.read()
+#tree = dsl2tree(dsl_code)
