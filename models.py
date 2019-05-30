@@ -55,7 +55,7 @@ class ImageCaptionTree(nn.Module):
     output: next_word(word_dim)
     '''
     def __init__(self, word_dim):
-        super(ImageCaptionSimple, self).__init__()
+        super(ImageCaptionTree, self).__init__()
         self.word_dim = word_dim
         
         self.tree_lstm = ChildSumTreeLSTM(word_dim, 1024)
@@ -78,9 +78,11 @@ class ImageCaptionTree(nn.Module):
  
 class ImageCaptionSequence(nn.Module):
     '''
-    Input: img(batch_size, 224, 224, 3)
-    Output: seq(batch_size, time_step, word_dim)
+    input: img(batch_size, 224, 224, 3), seq(batch_size, time_step, word_dim)
+    output: next_word(word_dim)
     '''
+    def __init__(self):
+        self.lstm = nn.LSTMCell()
 
 class ImageCaptionSequenceWithAttention(nn.Module):
     pass

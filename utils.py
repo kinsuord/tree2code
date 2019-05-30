@@ -74,6 +74,3 @@ def createFolder(directory):
             os.makedirs(directory)
     except OSError:
         print ('Error: Creating directory. ' + directory)
-#with open('dataset/pix2code/dsl/10.gui') as f:
-#    dsl_code = f.read()
-#tree = dsl2tree(dsl_code)

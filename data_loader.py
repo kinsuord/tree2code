@@ -2,13 +2,15 @@ import os
 import json
 from torchvision import transforms
 import numpy as np
+import torch
 from torch.utils.data.dataset import Dataset
 from PIL import Image
 
 from utils import json2tree, vec2word, dsl2tree
 
 class TreeDataset(Dataset):
-    def __init__(self, tree_dir='dataset/pix2code/dsl', embedding=True, dsl=True):
+    def __init__(self, tree_dir='dataset/pix2code/dsl', embedding=True, dsl=True, device='cpu'):
+        self.device = device
         files = [f for f in os.listdir(tree_dir) if os.path.isfile(os.path.join(tree_dir, f))]
         if dsl:
             dsl_data = []
@@ -67,16 +69,17 @@ class TreeDataset(Dataset):
         return tree
     
 class ImgDataset(Dataset):
-    def __init__(self, img_dir='dataset/pix2code/png', transform=transforms.Compose([transforms.Resize((224, 224))])):
+    def __init__(self, img_dir='dataset/pix2code/png', transform=transforms.Compose([transforms.Resize((224, 224))]), device='cpu'):
         self.transform = transform
+        self.device = device
         self.img_path = [os.path.join(img_dir, f) for f in os.listdir(img_dir) 
                         if os.path.isfile(os.path.join(img_dir, f))]
     
     def __getitem__(self, idx):
-        img=Image.open(self.img_path[idx])
+        img=Image.open(self.img_path[idx]).convert('RGB')
         if self.transform:
             img = self.transform(img)
-        return img
+        return torch.tensor(np.array(img).reshape(-1, 224, 224, 3).transpose(0, 3, 1, 2)).to(self.device).float()
     
     def __len__(self):
         return len(self.img_path)
