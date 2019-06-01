@@ -73,8 +73,8 @@ class ImageCaptionTree(nn.Module):
         
     def forward(self, img, tree):
         img_features = self.cnn(img)
-        tree_features = self.tree_lstm(tree)
-        return self.fc(self.cat((img_features, tree_features)))
+        tree_state, _ = self.tree_lstm(tree)
+        return self.fc(torch.cat((img_features, tree_state), dim=1))
  
 class ImageCaptionSequence(nn.Module):
     '''

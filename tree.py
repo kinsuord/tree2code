@@ -43,6 +43,14 @@ class Tree(object):
             self._height = self.parent.height() + 1
         
         return self._height
+    
+    def copy(self):
+        ''' return the new one with the same value'''
+        copy_tree = Tree(self.value)
+        for child in self.children:
+            copy_tree.add_child(child.copy())
+        return copy_tree
+        
         
     def __str__(self):
         out_str = '  '*self.height() + self.value.__str__()

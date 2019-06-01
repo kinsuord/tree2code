@@ -52,7 +52,12 @@ class TreeDataset(Dataset):
                 self._word_embedding(tree)
         
     def __getitem__(self, idx):
-        return self.trees[idx] 
+        queue = [self.trees[idx]]
+        while len(queue) != 0:
+            node = queue.pop(0)
+            node.value = torch.tensor(node.value).to(self.device).float()
+            queue += node.children
+        return self.trees[idx]
     
     def __len__(self):
         return len(self.trees)
