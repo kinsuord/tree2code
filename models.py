@@ -49,13 +49,13 @@ class ChildSumTreeLSTM(nn.Module):
         tree.state = self.node_forward(inputs, child_c, child_h)
         return tree.state
     
-class ImageCaptionTree(nn.Module):
+class ShowAndTellTree(nn.Module):
     '''
     input: img(224, 224, 3), Tree(word_dim)
     output: next_word(word_dim)
     '''
     def __init__(self, word_dim):
-        super(ImageCaptionTree, self).__init__()
+        super(ShowAndTellTree, self).__init__()
         self.word_dim = word_dim
         
         self.tree_lstm = ChildSumTreeLSTM(word_dim, 1024)
@@ -76,16 +76,25 @@ class ImageCaptionTree(nn.Module):
         tree_state, _ = self.tree_lstm(tree)
         return self.fc(torch.cat((img_features, tree_state), dim=1))
  
-class ImageCaptionSequence(nn.Module):
+class ShowAndTellSeq(nn.Module):
     '''
     input: img(batch_size, 224, 224, 3), seq(batch_size, time_step, word_dim)
     output: next_word(word_dim)
     '''
     def __init__(self):
         self.lstm = nn.LSTMCell()
+        self.cnn = models.vgg16(pretrained=True)
 
-class ImageCaptionSequenceWithAttention(nn.Module):
+class DecoderEncoderSeq(nn.Module):
     pass
 
-class ImageCaptionTreeWithAttention(nn.Module):
+class AttentionSeq(nn.Module):
     pass
+
+class AttentionTree(nn.Module):
+    pass
+
+
+
+
+

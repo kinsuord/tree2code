@@ -90,6 +90,9 @@ class ImgDataset(Dataset):
         return len(self.img_path)
     
 class TextLoader(Dataset):
-    def __init__(self, dsl_dir='dataset/pix2code/dsl'):
+    def __init__(self, dsl_dir='dataset/pix2code/dsl', device='cpu'):
+        self.device = device
+        self.files = [f for f in os.listdir(dsl_dir) if os.path.isfile(os.path.join(dsl_dir, f))]
+        
+    def __getitem__(self, idx):
         pass
-    
