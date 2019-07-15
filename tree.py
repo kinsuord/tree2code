@@ -50,9 +50,17 @@ class Tree(object):
         for child in self.children:
             copy_tree.add_child(child.copy())
         return copy_tree
-        
+    
+    def for_each_value(self, func):
+        ''' do something for each node in tree. 
+            EX:tree.for_each_value(lambda x: x.to(torch.device('cpu')))
+        '''
+        self.value = func(self.value)
+        for child in self.children:
+            child.for_each_value(func)
         
     def __str__(self):
+        '''print the tree'''
         out_str = '  '*self.height() + self.value.__str__()
         for child in self.children:
             out_str += '\n' + child.__str__()

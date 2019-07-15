@@ -1,3 +1,5 @@
 dataset
 *.pyc
 bin
+checkpoint
+tensorboard

@@ -52,11 +52,11 @@ class TreeDataset(Dataset):
                 self._word_embedding(tree)
         
     def __getitem__(self, idx):
-        queue = [self.trees[idx]]
-        while len(queue) != 0:
-            node = queue.pop(0)
-            node.value = torch.tensor(node.value).to(self.device).float()
-            queue += node.children
+#        queue = [self.trees[idx]]
+#        while len(queue) != 0:
+#            node = queue.pop(0)
+#            node.value = torch.tensor(node.value).to(self.device).float()
+#            queue += node.children
         return self.trees[idx]
     
     def __len__(self):
@@ -84,7 +84,8 @@ class ImgDataset(Dataset):
         img=Image.open(self.img_path[idx]).convert('RGB')
         if self.transform:
             img = self.transform(img)
-        return torch.tensor(np.array(img).reshape(-1, 224, 224, 3).transpose(0, 3, 1, 2)).to(self.device).float()
+        return torch.tensor(np.array(img).reshape(-1, 224, 224, 3).transpose(0, 3, 1, 2))
+#        return torch.tensor(np.array(img).reshape(-1, 224, 224, 3).transpose(0, 3, 1, 2)).to(self.device).float()
     
     def __len__(self):
         return len(self.img_path)

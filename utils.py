@@ -39,8 +39,8 @@ def _json2tree_rec(json_dict, tree):
         else:
             tree.add_child(Tree(str(json_dict)))
 
-def vec2word(tree, word_dict):
-    
+'''turn vector to work by word_dict'''
+def vec2word(tree, word_dict):    
     for key in word_dict.keys():
         if np.array_equal(tree.value, word_dict[key]):
             tree.value = key
@@ -49,6 +49,7 @@ def vec2word(tree, word_dict):
         vec2word(child, word_dict)
     return tree   
 
+'''compile dsl code to tree'''
 def dsl2tree(dsl):
     root = Tree('root')
     words = dsl.split()
@@ -67,7 +68,11 @@ def dsl2tree(dsl):
             last_child = child
     stack[-1].add_child(Tree('None'))
     return root
-       
+
+'''return Similarity of two tree'''
+def treeSimilarity(y, pred):
+    pass
+
 def createFolder(directory):
     try:
         if not os.path.exists(directory):
