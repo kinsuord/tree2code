@@ -7,7 +7,7 @@ device = torch.device("cuda:0")
 
 from data_loader import TreeDataset, ImgDataset
 
-tree_train = TreeDataset(tree_dir=os.path.join('bin', 'tree_train'), device=torch.device)
+tree_train = TreeDataset(tree_dir=os.path.join('bin', 'tree_train'), device=device)
 img_train = ImgDataset(img_dir=os.path.join('bin', 'img_train'), device=device)
 
 #%% init model
@@ -30,76 +30,87 @@ image_caption_model = ShowAndTellTree(len(tree_train.word_dict)).to(device)
 image_caption_model.apply(weights_init_uniform_rule)
 
 #%% training
-from tensorboardX import SummaryWriter
-
-writer = SummaryWriter('tensorboard/exp-1')
-
-epoch = 1
-lr = 1e-5
-name = 'sdlTree'
-print_frequency = 1
-save_frequency = 100
-optimizer = optim.Adam(image_caption_model.parameters(), lr=lr)
-criterion = torch.nn.BCELoss()
-image_caption_model.train()
-
-for e in range(epoch):
-    start = time.time()
-    for i , (tree, img) in enumerate(zip(tree_train, img_train)):
-        # genarate new dataset
-        split_tree = tree.copy()
-        queue = [split_tree]
-        bfs_seq = []
-        while len(queue) != 0:
-            # add new childern to queue
-            node = queue.pop(0)
-            bfs_seq.append(node)
-            queue += node.children
-        losses = []
-        while len(bfs_seq) > 1:
-            # get tree and next node
-            node = bfs_seq.pop()
-            node.parent.num_children -= 1
-            node.parent.children.remove(node)
-            next_node = image_caption_model(img, split_tree)
-            
-            # training
-            optimizer.zero_grad()
-            loss = criterion(next_node, node.value.view(1,-1))
-            writer.add_scalar('loss', loss, i)
-            losses.append(loss)  
-            loss.backward()
-            optimizer.step()
-                        
-        if i%print_frequency == 0:
-            print('epoch:{} tree:{} loss:{}'.format(e, i, sum(losses)/len(losses)))
-            
-        if i%save_frequency == 0:
-            checkpoint_path = os.path.join(
-                    'checkpoint', '{}_{}_{}.pth'.format(name, e, i))
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': image_caption_model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss':  sum(losses)/len(losses)
-            }, checkpoint_path)
-            print('save model to checkpoint_path')
-            
-    end = time.time()
-    print('epoch: {} time: {:2f}'.format(e, end-start))
+#from tensorboardX import SummaryWriter
+#
+#writer = SummaryWriter('tensorboard/exp-1')
+#
+#epoch = 1
+#lr = 1e-5
+#name = 'sdlTree'
+#print_frequency = 1
+#save_frequency = 100
+#optimizer = optim.Adam(image_caption_model.parameters(), lr=lr)
+#criterion = torch.nn.BCELoss()
+#image_caption_model.train()
+#
+#for e in range(epoch):
+#    start = time.time()
+#    for i , (tree, img) in enumerate(zip(tree_train, img_train)):
+#        tree.for_each_value(lambda x: torch.tensor(x).to(device).float())
+#        # genarate new dataset
+#        split_tree = tree.copy()
+#        queue = [split_tree]
+#        bfs_seq = []
+#        while len(queue) != 0:
+#            # add new childern to queue
+#            node = queue.pop(0)
+#            bfs_seq.append(node)
+#            queue += node.children
+#        losses = []
+#        while len(bfs_seq) > 1:
+#            # get tree and next node
+#            node = bfs_seq.pop()
+#            node.parent.num_children -= 1
+#            node.parent.children.remove(node)
+#            next_node = image_caption_model(img.to(device).float(), split_tree)
+#            
+#            # training
+#            optimizer.zero_grad()
+#            loss = criterion(next_node, node.value.view(1,-1))
+#            writer.add_scalar('loss', loss, i)
+#            losses.append(loss)  
+#            loss.backward()
+#            optimizer.step()
+#                        
+#        if i%print_frequency == 0:
+#            print('epoch:{} tree:{} loss:{}'.format(e, i, sum(losses)/len(losses)))
+#            
+#        if i%save_frequency == 0:
+#            checkpoint_path = os.path.join(
+#                    'checkpoint', '{}_{}_{}.pth'.format(name, e, i))
+#            torch.save({
+#                'epoch': epoch,
+#                'model_state_dict': image_caption_model.state_dict(),
+#                'optimizer_state_dict': optimizer.state_dict(),
+#                'loss':  sum(losses)/len(losses)
+#            }, checkpoint_path)
+#            print('save model to checkpoint_path')
+#            
+#    end = time.time()
+#    print('epoch: {} time: {:2f}'.format(e, end-start))
     
 #%%  evaluate
 
 from tree import Tree
 
-def predictTree(image_caption_model, img, word_dict):
+from gpu_mem_track import MemTracker
+import inspect
+
+def predictTree(img, word_dict):
     
     device = torch.device("cuda:0")
 
     root = Tree(word_dict["root"])
+
     root.value = torch.tensor(root.value).to(device).float()
+    
     while(1):
-        sub_tree = Tree(image_caption_model(img, root).flatten())
+#        frame = inspect.currentframe()     
+#        gpu_tracker = MemTracker(frame)      # 创建显存检测对象
+#        gpu_tracker.track()  
+#        
+        sub_tree = Tree(image_caption_model(img, root).flatten().detach())
+#        gpu_tracker.track()  
         max = 0
         max_index = 0
 
@@ -117,10 +128,10 @@ def predictTree(image_caption_model, img, word_dict):
             break
     for child in root.children:
         if child.value[3] == 1 or child.value[7] == 1 or child.value[8] == 1 or child.value[9] == 1 or child.value[12] == 1:
-            predictSubTree(image_caption_model, img, child, root, 1, word_dict)
+            predictSubTree(img, child, root, 1, word_dict)
     return root
 
-def predictSubTree(image_caption_model, img, now_node, root, depth, word_dict):
+def predictSubTree(img, now_node, root, depth, word_dict):
     if depth>3:
         return
     device = torch.device("cuda:0")
@@ -134,7 +145,7 @@ def predictSubTree(image_caption_model, img, now_node, root, depth, word_dict):
             now_node.add_child(end_node)
             return
         
-        sub_tree = Tree(image_caption_model(img, root).flatten())
+        sub_tree = Tree(image_caption_model(img, root).flatten().detach())
         max = 0
         max_index = 0
 
@@ -152,19 +163,37 @@ def predictSubTree(image_caption_model, img, now_node, root, depth, word_dict):
             break
     for child in now_node.children:
         if child.value[3] == 1 or child.value[7] == 1 or child.value[8] == 1 or child.value[9] == 1 or child.value[12] == 1:
-            predictSubTree(image_caption_model, img, child, root, depth+1, word_dict)
+            predictSubTree(img, child, root, depth+1, word_dict)
 
-#%%
+#%% load and test
 checkpoint = torch.load("checkpoint/sdlTree_0_1300.pth")
 image_caption_model.load_state_dict(checkpoint['model_state_dict'])
 tree_eval = TreeDataset(tree_dir=os.path.join('bin', 'tree_eval'), device=device)
 img_eval = ImgDataset(img_dir=os.path.join('bin', 'img_eval'), device=device)
 
-#%%
-pred = predictTree(image_caption_model, img_eval[0].to(device).float(), tree_train.word_dict)
+#%% pred one
+#pred = predictTree(img_eval[0].to(device).float(), tree_train.word_dict)
 
 #%%
-def to_cpu(x):
-    return x.to(torch.device('cpu'))
+from evaluate import tree_similarity
+image_caption_model.eval()
+scores = []
 
-pred.for_each_value(lambda x: x.to(torch.device('cpu')))
+frame = inspect.currentframe()     
+gpu_tracker = MemTracker(frame)      # 创建显存检测对象
+gpu_tracker.track()  
+
+for i , (tree, img) in enumerate(zip(tree_eval, img_eval)):
+    gpu_tracker.track()
+    print(i)
+    pred = predictTree(img_eval[0].to(device).float(), tree_train.word_dict)
+    scores.append(tree_similarity(pred, tree))
+    
+print('Average tree similarity score: {}'.format(sum(scores)/len(scores)))
+    
+
+# pred.for_each_value(lambda x: x.to(torch.device('cpu')))
+# torch.cuda.empty_cache()
+
+#%% evaluate all eval
+
