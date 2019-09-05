@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import torch
 import torch.nn as nn 
 import torchvision.models as models
@@ -75,26 +76,88 @@ class ShowAndTellTree(nn.Module):
         img_features = self.cnn(img)
         tree_state, _ = self.tree_lstm(tree)
         return self.fc(torch.cat((img_features, tree_state), dim=1))
- 
-class ShowAndTellSeq(nn.Module):
+    
+#class LigterShowAndTellTree(nn.Module):
+#    '''
+#    input: img(224, 224, 3), Tree(word_dim)
+#    output: next_word(word_dim)
+#    '''
+#    def __init__(self, word_dim):
+#        super(LigterShowAndTellTree, self).__init__()
+#        self.word_dim = word_dim
+#        
+#        self.tree_lstm = ChildSumTreeLSTM(word_dim, 1024)
+#        self.cnn = models.vgg11_bn(pretrained=True) # 1000
+#        self.fc = nn.Sequential(
+#            nn.Linear(2024, 2024),
+#            nn.ReLU(True),
+#            nn.Dropout(),
+#            nn.Linear(2024, 1024),
+#            nn.ReLU(True),
+#            nn.Dropout(),
+#            nn.Linear(1024, word_dim),
+#            nn.Softmax()
+#        )
+#        
+#    def forward(self, img, tree):
+#        img_features = self.cnn(img)
+#        tree_state, _ = self.tree_lstm(tree)
+#        return self.fc(torch.cat((img_features, tree_state), dim=1))
+    
+class LightNNShowAndTellTree(nn.Module):
     '''
-    input: img(batch_size, 224, 224, 3), seq(batch_size, time_step, word_dim)
+    input: img(224, 224, 3), Tree(word_dim)
     output: next_word(word_dim)
     '''
-    def __init__(self):
-        self.lstm = nn.LSTMCell()
-        self.cnn = models.vgg16(pretrained=True)
-
-class DecoderEncoderSeq(nn.Module):
-    pass
-
-class AttentionSeq(nn.Module):
-    pass
-
-class AttentionTree(nn.Module):
-    pass
-
-
-
-
-
+    def __init__(self, word_dim):
+        super(LightNNShowAndTellTree, self).__init__()
+        self.word_dim = word_dim
+        
+        self.tree_lstm = ChildSumTreeLSTM(word_dim, 512)
+        self.cnn = models.vgg11_bn(pretrained=True) # 1000
+        self.fc = nn.Sequential(
+            nn.Linear(1512, 1024),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1024, word_dim),
+            nn.Softmax()
+        )
+        
+    def forward(self, img, tree):
+        img_features = self.cnn(img)
+        tree_state, _ = self.tree_lstm(tree)
+        return self.fc(torch.cat((img_features, tree_state), dim=1))
+    
+#class PaddingShowAndTellTree(nn.Module):
+#     def __init__(self, word_dim, tree_size):
+#       input: img(batch_size, 3, 224, 224), 
+#              Tree(batch size, [5, 5, 4, 1] * word_dim)
+##       output: next_word(word_dim)
+#         pass
+#     
+#    def forward(self, img, tree):
+#        pass
+    
+class InceptionShowAndTellTree(nn.Module):
+   '''
+   input: img(3, 299, 299), Tree(word_dim)
+   output: next_word(word_dim)
+   '''
+   def __init__(self, word_dim):
+       super(LigterShowAndTellTree, self).__init__()
+       self.word_dim = word_dim
+       
+       self.tree_lstm = ChildSumTreeLSTM(word_dim, 512)
+       self.cnn = models.inception_v3(pretrained=True) # 1000
+       self.fc = nn.Sequential(
+           nn.Linear(2024, 1024),
+           nn.ReLU(True),
+           nn.Dropout(),
+           nn.Linear(1024, word_dim),
+           nn.Softmax()
+       )
+       
+   def forward(self, img, tree):
+       img_features = self.cnn(img)
+       tree_state, _ = self.tree_lstm(tree)
+       return self.fc(torch.cat((img_features, tree_state), dim=1))
