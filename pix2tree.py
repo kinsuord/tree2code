@@ -8,14 +8,18 @@ import os
 from utils.tree import Tree, tree_similarity
 from dataset import Pix2TreeDataset
 from utils.transforms import Rescale, WordEmbedding, TreeToTensor, Vec2Word
-from models import LightNNShowAndTellTree
+from models import BatchModel
 
 def batch_collate(batch):
-    return batch
+    out =dict()
+    out['img'] = torch.utils.data.dataloader.default_collate(
+                                            [x['img'] for x in batch])
+    out['tree'] = [x['tree'] for x in batch]
+    return out
 
 def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5, 
           batch_size=1, num_worker=2, device=torch.device("cuda:0"), 
-          loss_freq=50, save_freq=700):
+          loss_freq=10, save_freq=700):
     
     dataloader = DataLoader(train_data, batch_size=batch_size, 
                             collate_fn=batch_collate, num_workers=num_worker)
@@ -50,13 +54,15 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
     model.train()
     for e in range(pretrain_e, pretrain_e + epoch):
         for i, batch_sample in enumerate(dataloader):
-            tree = batch_sample[0]['tree']
-            img = batch_sample[0]['img']
-            tree.for_each_value(lambda x: x.to(device))
-            img = img.to(device).unsqueeze(0)
+
+            tree = batch_sample['tree']
+            img = batch_sample['img']
+            for t in tree:
+                t.for_each_value(lambda x: x.to(device))
+            img = img.to(device)
             
             # split tree to get each node
-            split_tree = tree.copy()
+            split_tree = tree[0].copy()
             queue = [split_tree]
             bfs_seq = []
             
@@ -65,25 +71,34 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
                 node = queue.pop(0)
                 bfs_seq.append(node)
                 queue += node.children
-    
-            losses = []
-            while len(bfs_seq) > 1:
-                # get tree and next node
-                node = bfs_seq.pop()
-                node.parent.num_children -= 1
-                node.parent.children.remove(node)
-                next_node = image_caption_model(img, split_tree)
+            # size: tree.szie() * word_dim
+            train_tree = torch.stack([n.value for n in bfs_seq], dim=0)
+            # size: tree.size()-1 * word_dim
+            pred = image_caption_model(img, bfs_seq)
+
+            optimizer.zero_grad()
+            loss = criterion(pred,train_tree[1:])
+            loss.backward()
+            optimizer.step()
+
+            # losses = []
+            # while len(bfs_seq) > 1:
+            #     # get tree and next node
+            #     node = bfs_seq.pop()
+            #     node.parent.num_children -= 1
+            #     node.parent.children.remove(node)
+            #     next_node = image_caption_model(img, split_tree)
                 
-                # training
-                optimizer.zero_grad()
-                loss = criterion(next_node, node.value.view(1,-1))
-                losses.append(loss)  
-                loss.backward()
-                optimizer.step()
+            #     # training
+            #     optimizer.zero_grad()
+            #     loss = criterion(next_node, node.value.view(1,-1))
+            #     losses.append(loss)  
+            #     loss.backward()
+            #     optimizer.step()
             
             if i%loss_freq == 0:
                 print('epoch:{} tree:{} loss:{}'.format(
-                        e, i, sum(losses)/len(losses)))
+                        e, i, loss))
 
             if i%save_freq == 0:
                 checkpoint_path = os.path.join(
@@ -92,7 +107,7 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
                     'epoch': epoch,
                     'model_state_dict': image_caption_model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'loss':  sum(losses)/len(losses)
+                    'loss':  loss
                 }, checkpoint_path)
                 print(datetime.datetime.now(), 'save model to {}'.
                                                      format(checkpoint_path))
@@ -103,7 +118,7 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
             'epoch': epoch,
             'model_state_dict': image_caption_model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss':  sum(losses)/len(losses)
+            'loss':  loss
         }, checkpoint_path)
         print(datetime.datetime.now(), 'save model to {}'.
                                               format(checkpoint_path))
@@ -148,7 +163,6 @@ def predict_tree(img, model, device, word_dict, max_child=4):
     
     queue = [root]
     while len(queue) != 0:
-#        import pdb; pdb.set_trace()
         sub_tree = Tree(image_caption_model(img, root).flatten().detach())
         max_value = torch.max(sub_tree.value)
         sub_tree.value = torch.where(sub_tree.value >= max_value, 
@@ -215,9 +229,9 @@ if __name__ == '__main__':
     #plt.imshow(dataset[0]['img'])
  
     # model
-    image_caption_model = LightNNShowAndTellTree(len(word_dict))
+    image_caption_model = BatchModel(len(word_dict))
     
-    train('light', image_caption_model, train_data, epoch=2)
+    train('batch', image_caption_model, train_data, epoch=2, batch_size=1)
 #    train('lessNN', image_caption_model, train_data, epoch=1, 
 #          pretrain='checkpoint/lessNN_0.pth')
     
