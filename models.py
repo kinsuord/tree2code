@@ -52,8 +52,8 @@ class ChildSumTreeLSTM(nn.Module):
 
 class BatchModel(nn.Module):
     '''
-    input: img(1, 224, 224, 3), List(Tree(word_dim)) in BFS
-    output: List(Tree(word_dim)) in BFS (Using tree[:i-1] to predict tree[i])
+    input: img(batch_size, 224, 224, 3), List(Tree())(length: batch_size)
+    output: pred(batch_size, word_dim)
     '''
     def __init__(self, word_dim):
         super(BatchModel, self).__init__()
@@ -70,16 +70,22 @@ class BatchModel(nn.Module):
         )
         
     def forward(self, img, tree):
-        img_feature = self.cnn(img)
-        img_features = torch.cat([img_feature] * (len(tree)-1), dim=0)
-        tree_vectors = []
-        for i in range(1,len(tree)):
-            node = tree.pop()
-            node.parent.num_children -= 1
-            node.parent.children.remove(node)
-            tree_vectors.append(self.tree_lstm(tree[0])[0])
-        tree_states = torch.cat(tree_vectors, dim=0)
-        return self.fc(torch.cat((img_features, tree_states), dim=1))
+#        import pdb; pdb.set_trace()
+        img_features = self.cnn(img)
+        tree_features = []
+        for i in range(len(tree)):
+            tree_features.append(self.tree_lstm(tree[i])[0])
+        tree_features = torch.cat(tree_features, dim=0)
+        import pdb; pdb.set_trace()
+#        img_features = torch.cat([img_feature] * (len(tree)-1), dim=0)
+#        tree_vectors = []
+#        for i in range(1,len(tree)):
+#            node = tree.pop()
+#            node.parent.num_children -= 1
+#            node.parent.children.remove(node)
+#            tree_vectors.append(self.tree_lstm(tree[0])[0])
+#        tree_states = torch.cat(tree_vectors, dim=0)
+        return self.fc(torch.cat((img_features, tree_features), dim=1))
     
   
 class ShowAndTellTree(nn.Module):

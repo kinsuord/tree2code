@@ -21,7 +21,7 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
           batch_size=1, num_worker=2, device=torch.device("cuda:0"), 
           loss_freq=10, save_freq=700):
     
-    dataloader = DataLoader(train_data, batch_size=batch_size, 
+    dataloader = DataLoader(train_data, batch_size=1, 
                             collate_fn=batch_collate, num_workers=num_worker)
     
     optimizer = torch.optim.Adam(image_caption_model.parameters(), lr=lr)
@@ -62,8 +62,8 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
             img = img.to(device)
             
             # split tree to get each node
-            split_tree = tree[0].copy()
-            queue = [split_tree]
+            copy_tree = tree[0].copy()
+            queue = [copy_tree]
             bfs_seq = []
             
             while len(queue) != 0:
@@ -71,31 +71,30 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
                 node = queue.pop(0)
                 bfs_seq.append(node)
                 queue += node.children
-            # size: tree.szie() * word_dim
-            train_tree = torch.stack([n.value for n in bfs_seq], dim=0)
-            # size: tree.size()-1 * word_dim
-            pred = image_caption_model(img, bfs_seq)
-
-            optimizer.zero_grad()
-            loss = criterion(pred,train_tree[1:])
-            loss.backward()
-            optimizer.step()
-
-            # losses = []
-            # while len(bfs_seq) > 1:
-            #     # get tree and next node
-            #     node = bfs_seq.pop()
-            #     node.parent.num_children -= 1
-            #     node.parent.children.remove(node)
-            #     next_node = image_caption_model(img, split_tree)
-                
-            #     # training
-            #     optimizer.zero_grad()
-            #     loss = criterion(next_node, node.value.view(1,-1))
-            #     losses.append(loss)  
-            #     loss.backward()
-            #     optimizer.step()
             
+            split_trees = []
+            split_node = []
+            for j in range(1,len(bfs_seq)):
+                node = bfs_seq[len(bfs_seq)-j]
+                split_node.append(node)
+                node.parent.num_children -= 1
+                node.parent.children.remove(node)
+                split_trees.append(copy_tree.copy())
+                
+                l = len(split_trees)
+                if l >= batch_size or j==len(bfs_seq)-1:
+                    answer = torch.stack([n.value for n in split_node], dim=0)
+                    imgs = torch.cat([img]*l, dim=0)
+                    pred = image_caption_model(imgs, split_trees)
+                    split_trees = []
+                    split_node = []
+                    
+#                    import pdb; pdb.set_trace()
+                    optimizer.zero_grad()
+                    loss = criterion(pred, answer)
+                    loss.backward()
+                    optimizer.step()
+
             if i%loss_freq == 0:
                 print('epoch:{} tree:{} loss:{}'.format(
                         e, i, loss))
@@ -141,7 +140,6 @@ def valid(valid_data, model, word_dict, device=torch.device("cuda:0"),
         else:
             pred = predict_tree(img, model, device, word_dict)
             preds.append(pred)
-
         score = tree_similarity(pred, valid_data[i]['tree'])
         scores.append(score)
 
@@ -163,7 +161,7 @@ def predict_tree(img, model, device, word_dict, max_child=4):
     
     queue = [root]
     while len(queue) != 0:
-        sub_tree = Tree(image_caption_model(img, root).flatten().detach())
+        sub_tree = Tree(image_caption_model(img, [root]).flatten().detach())
         max_value = torch.max(sub_tree.value)
         sub_tree.value = torch.where(sub_tree.value >= max_value, 
                 torch.ones(out_size).to(device),
@@ -177,6 +175,7 @@ def predict_tree(img, model, device, word_dict, max_child=4):
             queue.pop(0)
         else:
            queue.append(sub_tree)
+           
     root.for_each_value(lambda x: x.cpu().numpy())
     vec2word = Vec2Word(word_dict)
     root = vec2word(root)
@@ -236,7 +235,7 @@ if __name__ == '__main__':
 #          pretrain='checkpoint/lessNN_0.pth')
     
 ################################## test model #################################
-#    checkpoint = torch.load("checkpoint/lessNN_1.pth")
-#    image_caption_model = LessNNShowAndTellTree(len(word_dict))
+#    checkpoint = torch.load("checkpoint/batch_1.pth")
+#    image_caption_model = BatchModel(len(word_dict))
 #    image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-    scores = valid(valid_data, image_caption_model, word_dict)
+#    scores = valid(valid_data, image_caption_model, word_dict)
