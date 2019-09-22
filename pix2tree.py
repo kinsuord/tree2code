@@ -22,7 +22,7 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
           batch_size=1, num_worker=2, device=torch.device("cuda:0"), 
           loss_freq=10, save_freq=700):
     
-    dataloader = DataLoader(train_data, batch_size=1, 
+    dataloader = DataLoader(train_data, batch_size=1, pin_memory=True,
                             collate_fn=batch_collate, num_workers=num_worker)
     
     optimizer = torch.optim.Adam(image_caption_model.parameters(), lr=lr)
@@ -127,7 +127,8 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
 def valid(valid_data, model, word_dict, device=torch.device("cuda:0"),
           load_predict=None, save_predict=None):
     scores = []
-    # env = Env()
+    model.eval()
+    env = Env(rule='rule_c.json')
     
     if load_predict!=None:
         preds = np.load(load_predict, allow_pickle=True).item()
@@ -140,7 +141,12 @@ def valid(valid_data, model, word_dict, device=torch.device("cuda:0"),
         if load_predict!=None:
             pred = preds[i]
         else:
-            pred = predict_tree(img, model, device, word_dict)
+            # pred_2 = predict_tree(img, model, device, word_dict)
+            pred = predict_tree_with_rule(img, model, device, word_dict, env)
+            # print(pred_2)
+            # print(i)
+            # print(pred)
+            # import pdb; pdb.set_trace()
             preds.append(pred)
         score = tree_similarity(pred, valid_data[i]['tree'])
         scores.append(score)
@@ -156,6 +162,7 @@ def predict_tree(img, model, device, word_dict, max_child=4):
     tranf = transforms.Compose([WordEmbedding(word_dict), TreeToTensor()])
     end_value = tranf(Tree('end')).value.to(device)
     model.to(device)
+    
     root = Tree('root')   
     root = tranf(root)
     root.value = root.value.to(device)
@@ -185,14 +192,33 @@ def predict_tree(img, model, device, word_dict, max_child=4):
 
 def predict_tree_with_rule(img, model, device, word_dict, env):
     env.reset()
+    vec_dict = dict()
+    for k, v in word_dict.items():
+        vec_dict[np.sum(np.multiply(v, np.arange(v.size)))] = k
+    tranf = transforms.Compose([WordEmbedding(word_dict), TreeToTensor()])
+    model.to(device)
     root, parent, chioce = env.state()
+    out_size = len(word_dict)
     while parent != None:
         # get mask
         mask = np.sum([word_dict[c] for c in chioce], axis=0)
-        new_node = Tree(image_caption_model(img, [root]).flatten().detach())
+        copy_root = root.copy()
+        root_tensor = tranf(copy_root).for_each_value(lambda x: x.to(device))
+        pred_node = image_caption_model(img, [root_tensor]).flatten().detach()
+        pred_node *= torch.from_numpy(mask).to(device).float()
+        max_value = torch.max(pred_node)
+        pred_node = torch.where(pred_node >= max_value, 
+                torch.ones(out_size).to(device),
+                torch.zeros(out_size).to(device))
+
+        action = vec_dict[np.sum(
+                np.multiply(pred_node.cpu().numpy(), np.arange(out_size)))]
+        # import pdb; pdb.set_trace()
+
         # fliter the new node and get the predict value
-        import pdb; pdb.set_trace()
         root, parent, chioce = env.step(action)
+        # import pdb; pdb.set_trace()
+    # print(root)
     return root
 
 if __name__ == '__main__': 
@@ -250,7 +276,7 @@ if __name__ == '__main__':
 #          pretrain='checkpoint/lessNN_0.pth')
     
 ################################## test model #################################
-    # checkpoint = torch.load("checkpoint/batch10_2_2.pth")
-    # image_caption_model = BatchModel(len(word_dict))
-    # image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-    # scores = valid(valid_data, image_caption_model, word_dict)
+    checkpoint = torch.load("checkpoint/batch10_2_2.pth")
+    image_caption_model = BatchModel(len(word_dict))
+    image_caption_model.load_state_dict(checkpoint['model_state_dict'])
+    scores = valid(valid_data, image_caption_model, word_dict)

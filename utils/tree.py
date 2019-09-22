@@ -59,6 +59,7 @@ class Tree(object):
         self.value = func(self.value)
         for child in self.children:
             child.for_each_value(func)
+        return self
         
     def __str__(self):
         '''print the tree'''

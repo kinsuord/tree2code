@@ -24,42 +24,58 @@ class Env():
 
     def reset(self):
         self.root = Tree(self.start_token)
-        self.stack = [self.root]
+        self.queue = [self.root]
 
     def step(self, action):
         new_node = Tree(action)
-        self.stack[-1].add_child(new_node)
-        pointer_type = self.rule['dict'][self.stack[-1].value]
+        pointer_type = self.rule['dict'][self.queue[0].value]
         child_limit = self.rule['type'][pointer_type]['child'][0]['limit']
-        
+        self.queue[0].add_child(new_node)
         if action==self.end_token:
-            self.stack.pop()
-            if len(self.stack) == 0:
+            self.queue.pop(0)
+            if len(self.queue) == 0:
                 return self.root, None, []
-            else:
-                return self.state()
-            
-        if len(self.stack[-1].children) >= child_limit-1:
-            self.stack[-1].add_child(Tree(self.end_token))
-            self.stack.pop()
-
-#        action_type = self.rule['dict'][action]
-#        if self.rule['type'][action_type]['child'][0]['limit'] > 0:
-        self.stack.append(new_node)
-                
-        if len(self.stack) == 0:
-            return self.root, None, []
         else:
-            return self.state()
+            if len(self.queue[0].children) >= child_limit-1:
+                # add end
+                self.queue[0].add_child(Tree(self.end_token))
+                # pop
+                self.queue.pop(0)
+            self.queue.append(new_node)
+        return self.state()
+
+#         self.stack[0].add_child(new_node)
+#         pointer_type = self.rule['dict'][self.stack[-1].value]
+#         child_limit = self.rule['type'][pointer_type]['child'][0]['limit']
+        
+#         if action==self.end_token:
+#             self.stack.pop()
+#             if len(self.stack) == 0:
+#                 return self.root, None, []
+#             else:
+#                 return self.state()
+            
+#         if len(self.stack[-1].children) >= child_limit-1:
+#             self.stack[-1].add_child(Tree(self.end_token))
+#             self.stack.pop()
+
+# #        action_type = self.rule['dict'][action]
+# #        if self.rule['type'][action_type]['child'][0]['limit'] > 0:
+#         self.stack.append(new_node)
+                
+#         if len(self.stack) == 0:
+#             return self.root, None, []
+#         else:
+#             return self.state()
 
 
     def state(self):
         # return root, point to the node building child, chioce you can choose
         chioce = [self.end_token]
-        pointer_type = self.rule['dict'][self.stack[-1].value]
+        pointer_type = self.rule['dict'][self.queue[0].value]
         for tag_type in self.rule['type'][pointer_type]['child'][0]['type']:
             chioce += self.type_list[tag_type]
-        return self.root, self.stack[-1], chioce
+        return self.root, self.queue[0], chioce
 
 #env = Env()
 #
