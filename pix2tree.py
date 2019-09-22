@@ -9,6 +9,7 @@ from utils.tree import Tree, tree_similarity
 from dataset import Pix2TreeDataset
 from utils.transforms import Rescale, WordEmbedding, TreeToTensor, Vec2Word
 from models import BatchModel
+from utils.generator import Env
 
 def batch_collate(batch):
     out =dict()
@@ -114,10 +115,10 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
         checkpoint_path = os.path.join(
                 'checkpoint', '{}_{}.pth'.format(save_name, e))
         torch.save({
-            'epoch': epoch,
+            'epoch': e,
             'model_state_dict': image_caption_model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'loss':  loss
+            'loss': loss
         }, checkpoint_path)
         print(datetime.datetime.now(), 'save model to {}'.
                                               format(checkpoint_path))
@@ -126,6 +127,7 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
 def valid(valid_data, model, word_dict, device=torch.device("cuda:0"),
           load_predict=None, save_predict=None):
     scores = []
+    # env = Env()
     
     if load_predict!=None:
         preds = np.load(load_predict, allow_pickle=True).item()
@@ -181,6 +183,18 @@ def predict_tree(img, model, device, word_dict, max_child=4):
     root = vec2word(root)
     return root
 
+def predict_tree_with_rule(img, model, device, word_dict, env):
+    env.reset()
+    root, parent, chioce = env.state()
+    while parent != None:
+        # get mask
+        mask = np.sum([word_dict[c] for c in chioce], axis=0)
+        new_node = Tree(image_caption_model(img, [root]).flatten().detach())
+        # fliter the new node and get the predict value
+        import pdb; pdb.set_trace()
+        root, parent, chioce = env.step(action)
+    return root
+
 if __name__ == '__main__': 
     # load word dict
     def count_word_dict(dataset):
@@ -230,12 +244,13 @@ if __name__ == '__main__':
     # model
     image_caption_model = BatchModel(len(word_dict))
     
-    train('batch', image_caption_model, train_data, epoch=2, batch_size=1)
+    # train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
+    #     lr = 10e-7, pretrain='checkpoint/batch5_0.pth')
 #    train('lessNN', image_caption_model, train_data, epoch=1, 
 #          pretrain='checkpoint/lessNN_0.pth')
     
 ################################## test model #################################
-#    checkpoint = torch.load("checkpoint/batch_1.pth")
-#    image_caption_model = BatchModel(len(word_dict))
-#    image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-#    scores = valid(valid_data, image_caption_model, word_dict)
+    # checkpoint = torch.load("checkpoint/batch10_2_2.pth")
+    # image_caption_model = BatchModel(len(word_dict))
+    # image_caption_model.load_state_dict(checkpoint['model_state_dict'])
+    # scores = valid(valid_data, image_caption_model, word_dict)

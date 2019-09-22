@@ -76,7 +76,6 @@ class BatchModel(nn.Module):
         for i in range(len(tree)):
             tree_features.append(self.tree_lstm(tree[i])[0])
         tree_features = torch.cat(tree_features, dim=0)
-        import pdb; pdb.set_trace()
 #        img_features = torch.cat([img_feature] * (len(tree)-1), dim=0)
 #        tree_vectors = []
 #        for i in range(1,len(tree)):
