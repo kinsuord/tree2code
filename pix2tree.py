@@ -90,7 +90,6 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
                     split_trees = []
                     split_node = []
                     
-#                    import pdb; pdb.set_trace()
                     optimizer.zero_grad()
                     loss = criterion(pred, answer)
                     loss.backward()
@@ -138,15 +137,10 @@ def valid(valid_data, model, word_dict, device=torch.device("cuda:0"),
     for i in range(len(valid_data)):
         img = valid_data[i]['img'].to(device).unsqueeze(0)
         
-        if load_predict!=None:
+        if load_predict != None:
             pred = preds[i]
         else:
-            # pred_2 = predict_tree(img, model, device, word_dict)
             pred = predict_tree_with_rule(img, model, device, word_dict, env)
-            # print(pred_2)
-            # print(i)
-            # print(pred)
-            # import pdb; pdb.set_trace()
             preds.append(pred)
         score = tree_similarity(pred, valid_data[i]['tree'])
         scores.append(score)
@@ -205,6 +199,8 @@ def predict_tree_with_rule(img, model, device, word_dict, env):
         copy_root = root.copy()
         root_tensor = tranf(copy_root).for_each_value(lambda x: x.to(device))
         pred_node = image_caption_model(img, [root_tensor]).flatten().detach()
+
+        # fliter the new node and get the predict value
         pred_node *= torch.from_numpy(mask).to(device).float()
         max_value = torch.max(pred_node)
         pred_node = torch.where(pred_node >= max_value, 
@@ -213,12 +209,8 @@ def predict_tree_with_rule(img, model, device, word_dict, env):
 
         action = vec_dict[np.sum(
                 np.multiply(pred_node.cpu().numpy(), np.arange(out_size)))]
-        # import pdb; pdb.set_trace()
 
-        # fliter the new node and get the predict value
         root, parent, chioce = env.step(action)
-        # import pdb; pdb.set_trace()
-    # print(root)
     return root
 
 if __name__ == '__main__': 
@@ -272,8 +264,6 @@ if __name__ == '__main__':
     
     # train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
     #     lr = 10e-7, pretrain='checkpoint/batch5_0.pth')
-#    train('lessNN', image_caption_model, train_data, epoch=1, 
-#          pretrain='checkpoint/lessNN_0.pth')
     
 ################################## test model #################################
     checkpoint = torch.load("checkpoint/batch10_2_2.pth")

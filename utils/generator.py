@@ -77,30 +77,31 @@ class Env():
             chioce += self.type_list[tag_type]
         return self.root, self.queue[0], chioce
 
-#env = Env()
-#
-#env.reset()
-#tree, pointer, choice = env.state()
-#while pointer != None:
-#    tree, pointer, choice = env.step(random.choice(choice))
-#    
-#print(tree)
-##%% write to file and make to jpg
-#stack = [tree]
-#out_data = []
-#
-#while len(stack) != 0:
-##    print(len(stack))
+# env = Env()
+
+# env.reset()
+# tree, pointer, choice = env.state()
+# import pdb; pdb.set_trace()
+# while pointer != None:
+#     tree, pointer, choice = env.step(random.choice(choice))
+   
+# print(tree)
+# #%% write to file and make to jpg
+# stack = [tree]
+# out_data = []
+
+# while len(stack) != 0:
+# #    print(len(stack))
 #    if stack[-1].value == 'end':
 #        stack.pop()
 #        out_data.append( '/' + stack.pop().value)
 #    else:
 #        out_data.append(stack[-1].value)
 #        stack += list(reversed(stack[-1].children))
-#
-#out_data = ['<{}>'.format(i) for i in out_data]
-#with open('out.xml','w') as f:
+
+# out_data = ['<{}>'.format(i) for i in out_data]
+# with open('out.xml','w') as f:
 #    f.write(''.join(out_data))
-#
-#import os
-#os.system('node compiler/screenshot.js out.xml out.jpg compiler/template.html')
+
+# import os
+# os.system('node compiler/screenshot.js out.xml out.jpg compiler/template.html')

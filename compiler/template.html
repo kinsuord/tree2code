@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous\">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+  <style>.header{margin:20px 0}nav ul.nav-pills li{background-color:#333;border-radius:4px;margin-right:10px}.col-lg-3{width:24%;margin-right:1.333333%}.col-lg-6{width:49%;margin-right:2%}.col-lg-12,.col-lg-3,.col-lg-6{margin-bottom:20px;border-radius:6px;background-color:#f5f5f5;padding:20px}.row .col-lg-3:last-child,.row .col-lg-6:last-child{margin-right:0}footer{padding:20px 0;text-align:center;border-top:1px solid #bbb}
+  </style>
+  <title>Scaffold</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+</head>
+
+<body>
+<div id="app">
+</div>
+
+<script type="text/javascript">
+
+Vue.component('root', {
+  template: '<div class=\"container\"><slot></slot></div>'
+})
+Vue.component('v-header', {
+  template: '"<div class=\"header clearfix\">  <nav> <ul class=\"nav nav-pills pull-left\"><slot></slot></ul></nav></div>'
+})
+Vue.component('btn-active', {
+  template: '<li class=\"active\"><a href=\"#\">bottom</a></li>'
+})
+Vue.component('btn-inactive', {
+  template: '<li class=\"inactive\"><a href=\"#\">bottom</a></li>'
+})
+Vue.component('row', {
+  template: '<div class=\"row\"><slot></slot></div>'
+})
+Vue.component('single', {
+  template: '<div class=\"col-lg-12\"><slot></slot></div>'
+})
+Vue.component('double', {
+  template: '<div class=\"col-lg-6\"><slot></slot></div>'
+})
+Vue.component('quadruple', {
+  template: '<div class=\"col-lg-3\"><slot></slot></div>'
+})
+Vue.component('btn-green', {
+  template: '<a class=\"btn btn-success\" href=\"#\" role=\"button\">buttom</a>'
+})
+Vue.component('btn-orange', {
+  template: '<a class=\"btn btn-warning\" href=\"#\" role=\"button\">buttom</a>'
+})
+Vue.component('btn-red', {
+  template: '<a class=\"btn btn-danger\" href=\"#\" role=\"button\">buttom</a>'
+})
+Vue.component('big-title', {
+  template: '<h2>title</h2>'
+})
+Vue.component('small-title', {
+  template: '<h4>title</h4>'
+})
+Vue.component('v-text', {
+  template: '<p>vestibulum morbi blandit cursus risus at ultrices mi tempus imperdiet nulla malesuada pellentesque elit eget gravida cum sociis natoque penatibus et magnis dis parturient montes nascetur ridiculus mus mauris vitae ultricies leo integer malesuada nunc vel risus commodo viverra maecenas accumsan lacus vel facilisis volutpat est velit egestas dui id</p>'
+})
+
+
+new Vue({
+  el: '#app',
+  data: {
+
+  }
+})
+</script>
+
+</body>
+
+</html>

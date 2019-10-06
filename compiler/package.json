@@ -1,0 +1,14 @@
+{
+  "name": "compiler",
+  "version": "1.0.0",
+  "description": "compile xml to png",
+  "main": "screenshot.js",
+  "dependencies": {
+    "puppeteer": "^1.18.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node screenshot.js 0.xml out.png template.html"
+  },
+  "author": "Liang"
+}
