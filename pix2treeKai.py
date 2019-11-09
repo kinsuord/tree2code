@@ -8,7 +8,7 @@ import os
 from utils.tree import Tree, tree_similarity
 from dataset import Pix2TreeDataset
 from utils.transforms import Rescale, WordEmbedding, TreeToTensor, Vec2Word
-from models import BatchModel
+from models import Pix2TreeKai
 from utils.generator import Env
 
 def batch_collate(batch):
@@ -75,9 +75,11 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
             
             split_trees = []
             split_node = []
+            split_parent = []
             for j in range(1,len(bfs_seq)):
                 node = bfs_seq[len(bfs_seq)-j]
                 split_node.append(node)
+                split_parent.append(node.parent)
                 node.parent.num_children -= 1
                 node.parent.children.remove(node)
                 split_trees.append(copy_tree.copy())
@@ -85,10 +87,12 @@ def train(save_name, model, train_data, pretrain=None, epoch=2, lr=1e-5,
                 l = len(split_trees)
                 if l >= batch_size or j==len(bfs_seq)-1:
                     answer = torch.stack([n.value for n in split_node], dim=0)
+                    parents = torch.stack([n.value for n in split_parent], dim=0)
                     imgs = torch.cat([img]*l, dim=0)
-                    pred = image_caption_model(imgs, split_trees)
+                    pred = image_caption_model(imgs, split_trees, parents)
                     split_trees = []
                     split_node = []
+                    split_parent = []
                     
                     optimizer.zero_grad()
                     loss = criterion(pred, answer)
@@ -263,13 +267,13 @@ if __name__ == '__main__':
     #plt.imshow(dataset[0]['img'])
  
     # model
-    image_caption_model = BatchModel(len(word_dict))
+    image_caption_model = Pix2TreeKai(len(word_dict))
     
-    # train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
-    #     lr = 10e-7, pretrain='checkpoint/batch5_0.pth')
+    train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
+        lr = 10e-7)
     
 ################################## test model #################################
-    checkpoint = torch.load("checkpoint/batch10_2_2.pth")
-    image_caption_model = BatchModel(len(word_dict))
-    image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-    scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=False)
+    # checkpoint = torch.load("checkpoint/batch10_2_2.pth")
+    # image_caption_model = BatchModel(len(word_dict))
+    # image_caption_model.load_state_dict(checkpoint['model_state_dict'])
+    # scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=False)
