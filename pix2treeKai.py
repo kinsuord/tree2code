@@ -205,7 +205,9 @@ def predict_tree_with_rule(img, model, device, word_dict, env):
         mask = np.sum([word_dict[c] for c in chioce], axis=0)
         copy_root = root.copy()
         root_tensor = tranf(copy_root).for_each_value(lambda x: x.to(device))
-        pred_node = image_caption_model(img, [root_tensor]).flatten().detach()
+        parent_tensor = torch.from_numpy(word_dict[parent.value]).to(device).float()
+        parent_tensor = torch.stack([parent_tensor])
+        pred_node = image_caption_model(img, [root_tensor], parent_tensor).flatten().detach()
 
         # fliter the new node and get the predict value
         pred_node *= torch.from_numpy(mask).to(device).float()
@@ -269,11 +271,11 @@ if __name__ == '__main__':
     # model
     image_caption_model = Pix2TreeKai(len(word_dict))
     
-    train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
-        lr = 10e-7)
+    train('Kai_2', image_caption_model, train_data, epoch=2, batch_size=5,
+        lr = 10e-5, pretrain='checkpoint/Kai_2.pth')
     
 ################################## test model #################################
-    # checkpoint = torch.load("checkpoint/batch10_2_2.pth")
-    # image_caption_model = BatchModel(len(word_dict))
+    # checkpoint = torch.load("checkpoint/Kai_2_1.pth")
+    # image_caption_model = Pix2TreeKai(len(word_dict))
     # image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-    # scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=False)
+    # scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=True)

@@ -4,3 +4,4 @@ bin
 checkpoint
 tensorboard
 compiler/node_modules
+predXrule.npy

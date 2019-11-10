@@ -37,7 +37,29 @@ class TreeToTensor(object):
     def __call__(self, sample):
         sample.for_each_value(lambda x: torch.from_numpy(x).float())
         return sample
-    
+
+class TreeToBfsSeq(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, sample):
+        queue = [sample]
+        bfs_seq = []
+            
+        while len(queue) != 0:
+            # add new childern to queue
+            node = queue.pop(0)
+            bfs_seq.append(node.value)
+            queue += node.children
+        return bfs_seq
+
+class SeqToTensor(object):
+    def __init__(self):
+        pass
+
+    def __call__(self, sample):
+        return torch.from_numpy(np.stack(sample, axis=0))
+
 class TreePadding(object):
     def __init__(self, word_dict, pad_value='pad', size=[5, 5, 4, 1]):
         self.size = size
