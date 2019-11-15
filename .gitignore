@@ -1,7 +1,9 @@
 dataset
+predict
 *.pyc
 bin
 checkpoint
 tensorboard
 compiler/node_modules
 predXrule.npy
+.ipynb_checkpoints

@@ -5,9 +5,9 @@ from utils.tree import Tree
 import xml.etree.ElementTree as ET
 
 class Pix2TreeDataset(Dataset):
-    def __init__(self, img_dir='../dataset/pix2code_png', img_transform=None,
-                 tree_dir='../dataset/pure_tag', tree_transform=None, 
-                 partition=None):
+    def __init__(self, img_dir, tree_dir, 
+                img_transform=None, tree_transform=None, 
+                partition=None):
         # if partion == None find all in the floder
         if partition == None:
             self.partition = range(len([f for f in os.listdir(img_dir) 

@@ -217,6 +217,9 @@ def predict_tree_with_rule(img, model, device, word_dict, env):
     return root
 
 if __name__ == '__main__': 
+    # some arguments
+    dataset_tree_dir = './dataset/tree'
+    dataset_img_dir = './dataset/img'
     # load word dict
     def count_word_dict(dataset):
         word_count = {'root':0, 'end':0}
@@ -240,7 +243,8 @@ if __name__ == '__main__':
             i += 1
         return word_dict
 
-    dataset = Pix2TreeDataset()
+    dataset = Pix2TreeDataset(
+            img_dir=dataset_img_dir, tree_dir=dataset_tree_dir)
     if not os.path.exists('word_dict.npy'):
         word_dict = count_word_dict(dataset)
         np.save('word_dict.npy', word_dict)
@@ -248,13 +252,16 @@ if __name__ == '__main__':
         word_dict = np.load('word_dict.npy', allow_pickle=True).item()
         
     # prepare dataset
-    train_data = Pix2TreeDataset(partition=range(int(len(dataset)*0.8)),
+    train_data = Pix2TreeDataset(
+            img_dir=dataset_img_dir, tree_dir=dataset_tree_dir,
+            partition=range(int(len(dataset)*0.8)),
             tree_transform=transforms.Compose([WordEmbedding(word_dict),
                                                TreeToTensor()]),
             img_transform=transforms.Compose([Rescale(224),
                                               transforms.ToTensor()]))
 
     valid_data = Pix2TreeDataset(
+            img_dir=dataset_img_dir, tree_dir=dataset_tree_dir,
             partition=range(int(len(dataset)*0.8), len(dataset)),
             img_transform=transforms.Compose([Rescale(224),
                                               transforms.ToTensor()]))
@@ -265,11 +272,11 @@ if __name__ == '__main__':
     # model
     image_caption_model = BatchModel(len(word_dict))
     
-    # train('batch10_2', image_caption_model, train_data, epoch=1, batch_size=10,
-    #     lr = 10e-7, pretrain='checkpoint/batch5_0.pth')
+    train('batchFail', image_caption_model, train_data, epoch=2, batch_size=10,
+        lr = 10e-6)
     
 ################################## test model #################################
-    checkpoint = torch.load("checkpoint/batch10_2_2.pth")
-    image_caption_model = BatchModel(len(word_dict))
-    image_caption_model.load_state_dict(checkpoint['model_state_dict'])
-    scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=False)
+    # checkpoint = torch.load("checkpoint/batch10_2_2.pth")
+    # image_caption_model = BatchModel(len(word_dict))
+    # image_caption_model.load_state_dict(checkpoint['model_state_dict'])
+    # scores = valid(valid_data, image_caption_model, word_dict, save_predict='predXrule.npy', with_rule=False)

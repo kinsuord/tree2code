@@ -50,6 +50,49 @@ class ChildSumTreeLSTM(nn.Module):
         tree.state = self.node_forward(inputs, child_c, child_h)
         return tree.state
 
+class ChildSumLSTMCell(nn.Module):
+    '''
+    input: inputs(word_dim), child_c, child_h
+    output: c, h
+    '''
+    def __init__(self, in_dim, mem_dim):
+        super(ReverseTreeLSTM, self).__init__()
+        self.in_dim = in_dim
+        self.mem_dim = mem_dim
+        self.ioux = nn.Linear(self.in_dim, 3 * self.mem_dim)
+        self.iouh = nn.Linear(self.mem_dim, 3 * self.mem_dim)
+        self.fx = nn.Linear(self.in_dim, self.mem_dim)
+        self.fh = nn.Linear(self.mem_dim, self.mem_dim)
+
+    def forward(self, inputs, child_c, child_h):
+        child_h_sum = torch.sum(child_h, dim=0, keepdim=True)
+        iou = self.ioux(inputs) + self.iouh(child_h_sum)
+        
+        i, o, u = torch.split(iou, iou.size(1) // 3, dim=1)
+        i, o, u = torch.sigmoid(i), torch.sigmoid(o), torch.tanh(u)
+
+        f = torch.sigmoid(
+            self.fh(child_h) +
+            self.fx(inputs).repeat(len(child_h), 1)
+        )
+        fc = torch.mul(f, child_c)
+
+        c = torch.mul(i, u) + torch.sum(fc, dim=0, keepdim=True)
+        h = torch.mul(o, torch.tanh(c))
+        return c, h
+
+
+class Pix2TreeReverse(nn.Module):
+    '''
+    input: img(224, 224, 3), Tree(word_dim), parent of next_word (Tree(word dim))
+    output: Seqence( (root) form  node -> node -> next_word)
+    '''
+    def __init__(self, word_dim):
+        super(Pix2TreeReverse, self).__init__()
+
+    def forward(self, img, tree, parent):
+        
+
 class ShowAndTellTree(nn.Module):
     '''
     input: img(224, 224, 3), Tree(word_dim)

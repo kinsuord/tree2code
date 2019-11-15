@@ -120,6 +120,9 @@ def main():
     """
     Training and validation.
     """
+    # some arguments
+    dataset_tree_dir = './dataset/tree'
+    dataset_img_dir = './dataset/img'
 
     global best_bleu4, epochs_since_improvement, checkpoint, start_epoch, fine_tune_encoder, data_name, word_map
 
