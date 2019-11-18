@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn 
 import torchvision.models as models
+from utils.tree import Tree
 
 class ChildSumTreeLSTM(nn.Module):
     '''
@@ -56,7 +57,7 @@ class ChildSumLSTMCell(nn.Module):
     output: c, h
     '''
     def __init__(self, in_dim, mem_dim):
-        super(ReverseTreeLSTM, self).__init__()
+        super(ChildSumLSTMCell, self).__init__()
         self.in_dim = in_dim
         self.mem_dim = mem_dim
         self.ioux = nn.Linear(self.in_dim, 3 * self.mem_dim)
@@ -85,13 +86,74 @@ class ChildSumLSTMCell(nn.Module):
 class Pix2TreeReverse(nn.Module):
     '''
     input: img(224, 224, 3), Tree(word_dim), parent of next_word (Tree(word dim))
+    input: img(224, 224, 3), List(Tree): path to next_node parent
     output: Seqence( (root) form  node -> node -> next_word)
     '''
-    def __init__(self, word_dim):
+    def __init__(self, word_dim, mem_dim):
         super(Pix2TreeReverse, self).__init__()
+        self.word_dim = word_dim
+        self.mem_dim = mem_dim
+        self.img_dim = 1000
 
-    def forward(self, img, tree, parent):
+        self.cnn = models.vgg16(pretrained=True) # 1000
+        self.img_to_c = nn.Linear(self.img_dim, self.mem_dim)
+        self.tree_lstm = ChildSumLSTMCell(self.word_dim, self.mem_dim)
+
+        self.h_to_word = nn.Sequential(            
+            nn.Linear(self.mem_dim, 1024),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1024, 512),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(512, self.word_dim),
+            nn.Softmax()
+        )
+
+    def forward(self, img, path):
         
+        output = []
+        for i in range(len(path)):
+            # if path[i] = root
+            if path[i].parent == None:
+                img_features = self.cnn(img)
+                child_c = self.img_to_c(img_features)
+                child_h = path[0].value.detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+                dummy = Tree('')
+                dummy.state = child_c, child_h
+                feed_list = [dummy]
+            else:
+                feed_list = [path[i].parent]
+                idx = path[i].parent.children.index(path[i])
+                for j in range(idx):
+                    child = path[i].parent.children[j]
+                    child_c = child.value.detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+                    child_h = child.value.detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+                    child.state = self.tree_lstm(child.value, child_c, child_h)
+                    feed_list.append(child)
+            
+            # if this is the end
+            if i == len(path)-1:
+                idx = len(path[i].children)
+            else:
+                idx = path[i].children.index(path[i+1])
+            
+            for j in range(idx):
+                child = path[i].children[j]
+                child_c = child.value.detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+                child_h = child.value.detach().new(1, self.mem_dim).fill_(0.).requires_grad_()
+                child.state = self.tree_lstm(child.value, child_c, child_h)
+                feed_list.append(child)
+
+            child_c, child_h = zip(* map(lambda x: x.state, feed_list))
+            child_c, child_h = torch.cat(child_c, dim=0), torch.cat(child_h, dim=0)
+            
+            path[i].state = self.tree_lstm(path[i].value, child_c, child_h)
+            output.append(self.h_to_word(path[i].state[1]))
+
+        return torch.cat(output, dim=0)
+        
+
 
 class ShowAndTellTree(nn.Module):
     '''

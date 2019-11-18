@@ -21,9 +21,9 @@ class Pix2TreeDataset(Dataset):
         self.word_dict = None
     
     def __getitem__(self, idx):
-        img = Image.open(os.path.join(self.img_dir, str(idx) + '.png'))
+        img = Image.open(os.path.join(self.img_dir, str(self.partition[idx]) + '.png'))
         
-        tree = ET.parse(os.path.join(self.tree_dir, str(idx) + '.xml'))
+        tree = ET.parse(os.path.join(self.tree_dir, str(self.partition[idx]) + '.xml'))
         et_root = tree.getroot()
         def build_tree(ele, et_ele):
             for et_child in et_ele:
@@ -42,3 +42,6 @@ class Pix2TreeDataset(Dataset):
     
     def __len__(self):
         return len(self.partition)
+
+    def get_path(self, idx):
+        return os.path.join(self.img_dir, str(self.partition[idx]) + '.png')

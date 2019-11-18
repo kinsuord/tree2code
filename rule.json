@@ -1,13 +1,13 @@
 {
     "dict":{
         "root":"root",
-        "v-header":"component",
+        "v-header":"header",
         "btn-active":"component",
         "btn-inactive":"component",
-        "row":"component",
-        "single":"component",
-        "double":"component",
-        "quadruple":"component",
+        "row":"row",
+        "single":"grid",
+        "double":"grid",
+        "quadruple":"grid",
         "btn-green":"component",
         "btn-orange":"component",
         "btn-red":"component",
@@ -16,6 +16,33 @@
     },
     "type":{
         "root":{
+            "child":[
+                {
+                    "name": "element",
+                    "type": ["header", "row"],
+                    "limit": 8
+                }
+            ]
+        },
+        "header":{
+            "child":[
+                {
+                    "name": "element",
+                    "type": ["component"],
+                    "limit": 6
+                }
+            ]
+        },
+        "row":{
+            "child":[
+                {
+                    "name": "element",
+                    "type": ["grid"],
+                    "limit": 6
+                }
+            ]
+        },
+        "grid":{
             "child":[
                 {
                     "name": "element",
@@ -29,7 +56,7 @@
                 {
                     "name": "element",
                     "type": ["component"],
-                    "limit": 8
+                    "limit": 3
                 }
             ]
         }
